@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Committee Report — Central Baptist Church</title>
-  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/quill-table-better@1/dist/quill-table-better.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill-table-better@1/dist/quill-table-better.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -64,7 +66,7 @@
   </style>
 </head>
 <body>
-  <div class="card" x-data="reportForm()" x-init="init()">
+  <div class="card" x-data="reportForm()">
 
     <div x-show="!ready && !loadError" class="loading-msg">Loading…</div>
 
@@ -152,16 +154,28 @@
         quill: null,
 
         init() {
+          Quill.register({'modules/table-better': QuillTableBetter}, true);
+
           this.quill = new Quill('#editor', {
             theme: 'snow',
-            placeholder: 'Write your committee report here…',
+            placeholder: 'Write or paste your report here…',
             modules: {
+              table: false,
               toolbar: [
                 ['bold', 'italic'],
                 [{ header: [2, 3, false] }],
                 [{ list: 'ordered' }, { list: 'bullet' }],
+                ['table-better'],
                 ['clean']
-              ]
+              ],
+              'table-better': {
+                language: 'en_US',
+                menus: ['column', 'row', 'merge', 'table', 'cell', 'wrap', 'copy', 'delete'],
+                toolbarTable: true
+              },
+              keyboard: {
+                bindings: QuillTableBetter.keyboardBindings
+              }
             }
           });
 
