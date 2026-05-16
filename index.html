@@ -184,8 +184,11 @@
             .then(data => {
               this.committees = data.committees || [];
               this.targets    = data.targets    || [];
-              if (this.targets.length) this.councilTarget = this.targets[0];
               this.ready = true;
+              // Set after $nextTick so x-for has rendered the options before x-model syncs.
+              this.$nextTick(() => {
+                if (this.targets.length) this.councilTarget = this.targets[0];
+              });
             })
             .catch(() => {
               this.loadError = 'Could not load form data. Make sure GAS_URL is set correctly in index.html.';
