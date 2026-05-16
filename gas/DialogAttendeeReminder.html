@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; font-size: 14px; }
+    label { display: block; margin-bottom: 4px; font-weight: bold; }
+    .field { margin-bottom: 14px; }
+    select { padding: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
+    button { margin-top: 4px; padding: 8px 20px; font-size: 14px; cursor: pointer; }
+    #status { margin-top: 12px; color: #666; }
+    #result { margin-top: 14px; }
+    .result-field { margin-top: 12px; }
+    .result-field label { margin-bottom: 3px; font-size: 12px; color: #555; }
+    .result-field input, .result-field textarea {
+      width: 100%; box-sizing: border-box; padding: 5px;
+      font-size: 13px; font-family: monospace;
+      border: 1px solid #ccc; border-radius: 3px; background: #fff;
+    }
+    .result-field textarea { resize: none; }
+  </style>
+</head>
+<body>
+  <script>var MEETINGS = <?!= meetings ?>;</script>
+
+  <div class="field">
+    <label for="meetingSelect">Meeting</label>
+    <select id="meetingSelect"></select>
+  </div>
+  <button onclick="generate()">Generate Reminder Link</button>
+  <div id="status"></div>
+  <div id="result"></div>
+
+  <script>
+    (function init() {
+      var sel = document.getElementById('meetingSelect');
+      if (!MEETINGS.length) {
+        sel.innerHTML = '<option value="">— no meetings found —</option>';
+        return;
+      }
+      MEETINGS.forEach(function(m) {
+        var opt = document.createElement('option');
+        opt.value            = m.dateStr;
+        opt.textContent      = m.label;
+        opt.dataset.type     = m.type;
+        sel.appendChild(opt);
+      });
+      var today = new Date().toISOString().slice(0, 10);
+      var idx   = MEETINGS.findIndex(function(m) { return m.dateStr >= today; });
+      sel.selectedIndex = idx >= 0 ? idx : MEETINGS.length - 1;
+    })();
+
+    function generate() {
+      var sel  = document.getElementById('meetingSelect');
+      var opt  = sel.options[sel.selectedIndex];
+      if (!opt || !opt.value) return;
+      document.getElementById('status').textContent = 'Building link…';
+      document.getElementById('result').innerHTML = '';
+      google.script.run
+        .withSuccessHandler(showLink)
+        .withFailureHandler(function(err) {
+          document.getElementById('status').textContent = 'Error: ' + (err.message || String(err));
+        })
+        .getAttendeeReminderData(opt.value, opt.dataset.type);
+    }
+
+    var pendingData = null;
+
+    function showLink(data) {
+      pendingData = data;
+      document.getElementById('status').textContent = '';
+      document.getElementById('result').innerHTML =
+        field('To',      'input',    data.to.join(', '),  1, 'fTo') +
+        field('Subject', 'input',    data.subject,         1, 'fSubject') +
+        field('Body',    'textarea', data.body,            8, 'fBody') +
+        '<button onclick="sendNow()" style="margin-top:12px;padding:8px 20px;font-size:14px;cursor:pointer;background:#1a73e8;color:#fff;border:none;border-radius:4px;">Send to All Attendees</button>';
+    }
+
+    function sendNow() {
+      var to      = document.getElementById('fTo').value.split(',').map(function(e) { return e.trim(); }).filter(Boolean);
+      var subject = document.getElementById('fSubject').value;
+      var body    = document.getElementById('fBody').value;
+      if (!to.length) return;
+      document.getElementById('status').textContent = 'Sending…';
+      document.getElementById('result').querySelector('button').disabled = true;
+      google.script.run
+        .withSuccessHandler(function() {
+          document.getElementById('status').textContent = 'Sent to ' + to.length + ' recipients.';
+          document.getElementById('result').querySelector('button').remove();
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('status').textContent = 'Error: ' + (err.message || String(err));
+          document.getElementById('result').querySelector('button').disabled = false;
+        })
+        .sendAttendeeReminder(to, subject, body);
+    }
+
+    function field(label, tag, value, rows, id) {
+      var attrs = (tag === 'textarea' ? ' rows="' + rows + '"' : '') + ' id="' + id + '"';
+      var el = '<' + tag + attrs
+             + (tag === 'input' ? ' value="' + esc(value) + '"' : '')
+             + '>' + (tag === 'textarea' ? esc(value) : '') + '</' + tag + '>';
+      return '<div class="result-field"><label>' + label + '</label>' + el + '</div>';
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+</body>
+</html>

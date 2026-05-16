@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; font-size: 14px; }
+    label { display: block; margin-bottom: 4px; font-weight: bold; }
+    input[type="date"] { padding: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
+    button { margin-top: 12px; padding: 8px 20px; font-size: 14px; cursor: pointer; }
+    #status { margin-top: 12px; color: #666; }
+    #result { margin-top: 8px; }
+    a { color: #1a73e8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <label for="meetingDate">Meeting Date</label>
+  <input type="date" id="meetingDate">
+  <button onclick="submit()">Generate Agenda</button>
+  <div id="status"></div>
+  <div id="result"></div>
+
+  <script>
+    var pendingDate = '';
+
+    function submit() {
+      pendingDate = document.getElementById('meetingDate').value;
+      if (!pendingDate) {
+        document.getElementById('status').textContent = 'Please select a date.';
+        return;
+      }
+      document.getElementById('status').textContent = 'Checking…';
+      document.getElementById('result').innerHTML = '';
+      google.script.run
+        .withSuccessHandler(onDuplicateCheck)
+        .withFailureHandler(onFailure)
+        .checkStaffAgendaDuplicate(pendingDate);
+    }
+
+    function onDuplicateCheck(existingRow) {
+      var overwriteRow = 0;
+      if (existingRow) {
+        var overwrite = confirm('A Staff agenda for this date already exists in the sheet. Overwrite that entry?');
+        overwriteRow = overwrite ? existingRow : 0;
+      }
+      document.getElementById('status').textContent = 'Generating — this may take a moment…';
+      google.script.run
+        .withSuccessHandler(onSuccess)
+        .withFailureHandler(onFailure)
+        .generateStaffAgenda(pendingDate, overwriteRow);
+    }
+
+    function onSuccess(url) {
+      document.getElementById('status').textContent = '';
+      document.getElementById('result').innerHTML =
+        'Done! <a href="' + url + '" target="_blank">Open Agenda ↗</a>';
+    }
+
+    function onFailure(err) {
+      document.getElementById('status').textContent = 'Error: ' + (err.message || String(err));
+    }
+  </script>
+</body>
+</html>

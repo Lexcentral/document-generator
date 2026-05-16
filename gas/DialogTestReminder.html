@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; font-size: 14px; }
+    label { display: block; margin-bottom: 4px; font-weight: bold; }
+    .field { margin-bottom: 14px; }
+    select { padding: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
+    button { margin-top: 4px; padding: 8px 20px; font-size: 14px; cursor: pointer; }
+    #status { margin-top: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="field">
+    <label for="meetingType">Meeting Type</label>
+    <select id="meetingType">
+      <option value="Deacon">Deacon</option>
+      <option value="Council">Council</option>
+      <option value="Business">Business</option>
+    </select>
+  </div>
+  <button onclick="send()">Send Test to Me</button>
+  <div id="status"></div>
+
+  <script>
+    function send() {
+      var type = document.getElementById('meetingType').value;
+      document.getElementById('status').textContent = 'Sending…';
+      google.script.run
+        .withSuccessHandler(function(msg) {
+          document.getElementById('status').textContent = msg;
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('status').textContent = 'Error: ' + (err.message || String(err));
+        })
+        .sendTestReminderEmail(type);
+    }
+  </script>
+</body>
+</html>

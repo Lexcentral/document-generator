@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; font-size: 14px; }
+    label { display: block; margin-bottom: 6px; }
+    input[type=number] { width: 90px; padding: 5px; font-size: 14px; }
+    button { margin-top: 16px; padding: 8px 18px; font-size: 14px; cursor: pointer; }
+    #status { margin-top: 14px; color: #444; }
+    #error  { margin-top: 14px; color: #c00; }
+  </style>
+</head>
+<body>
+  <label for="year">Generate schedule for year:</label>
+  <input type="number" id="year" min="2025" max="2040" value="<?= nextYear ?>">
+  <br>
+  <button onclick="submit()">Generate</button>
+  <div id="status"></div>
+  <div id="error"></div>
+
+  <script>
+    function submit() {
+      var year = parseInt(document.getElementById('year').value, 10);
+      if (!year || year < 2025) return;
+      setStatus('Checking…');
+      google.script.run
+        .withSuccessHandler(function(count) {
+          if (count > 0 && !confirm(count + ' existing rows for ' + year + ' will be replaced. Continue?')) {
+            setStatus('');
+            return;
+          }
+          generate(year);
+        })
+        .withFailureHandler(showError)
+        .checkLeadershipScheduleYear(year);
+    }
+
+    function generate(year) {
+      setStatus('Generating…');
+      google.script.run
+        .withSuccessHandler(function() {
+          setStatus('Done — ' + year + ' schedule added to leadership_meetings.');
+        })
+        .withFailureHandler(showError)
+        .generateLeadershipSchedule(year);
+    }
+
+    function setStatus(msg) { document.getElementById('status').textContent = msg; }
+    function showError(e)   { document.getElementById('error').textContent = e.message; setStatus(''); }
+  </script>
+</body>
+</html>

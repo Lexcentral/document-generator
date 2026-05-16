@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; font-size: 14px; }
+    label { display: block; margin-bottom: 4px; font-weight: bold; }
+    .field { margin-bottom: 14px; }
+    select { padding: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
+    button { margin-top: 4px; padding: 8px 20px; font-size: 14px; cursor: pointer; }
+    #status { margin-top: 12px; color: #666; }
+    #result { margin-top: 8px; }
+    a { color: #1a73e8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <script>var MEETINGS = <?!= meetings ?>;</script>
+
+  <div class="field">
+    <label for="meetingSelect">Meeting Date</label>
+    <select id="meetingSelect"></select>
+  </div>
+  <button onclick="submit()">Generate Agenda</button>
+  <div id="status"></div>
+  <div id="result"></div>
+
+  <script>
+    var pendingDate   = '';
+    var pendingTime   = '';
+
+    (function init() {
+      var sel = document.getElementById('meetingSelect');
+      if (!MEETINGS.length) {
+        sel.innerHTML = '<option value="">— no meetings found —</option>';
+        return;
+      }
+      MEETINGS.forEach(function(m) {
+        var opt = document.createElement('option');
+        opt.value            = m.dateStr;
+        opt.textContent      = m.label;
+        opt.dataset.time24h  = m.time24h;
+        sel.appendChild(opt);
+      });
+      var today = new Date().toISOString().slice(0, 10);
+      var idx   = MEETINGS.findIndex(function(m) { return m.dateStr >= today; });
+      sel.selectedIndex = idx >= 0 ? idx : MEETINGS.length - 1;
+    })();
+
+    function submit() {
+      var sel     = document.getElementById('meetingSelect');
+      var opt     = sel.options[sel.selectedIndex];
+      pendingDate = sel.value;
+      pendingTime = opt ? (opt.dataset.time24h || '19:00') : '19:00';
+      if (!pendingDate) return;
+      document.getElementById('status').textContent = 'Checking…';
+      document.getElementById('result').innerHTML = '';
+      google.script.run
+        .withSuccessHandler(onDuplicateCheck)
+        .withFailureHandler(onFailure)
+        .checkDeaconAgendaDuplicate(pendingDate);
+    }
+
+    function onDuplicateCheck(existingUrl) {
+      if (existingUrl && !confirm('An agenda for this date already exists. Regenerate and overwrite?')) {
+        document.getElementById('status').textContent = '';
+        return;
+      }
+      document.getElementById('status').textContent = 'Generating — this may take a moment…';
+      google.script.run
+        .withSuccessHandler(onSuccess)
+        .withFailureHandler(onFailure)
+        .generateDeaconAgenda(pendingDate, pendingTime);
+    }
+
+    function onSuccess(url) {
+      document.getElementById('status').textContent = '';
+      document.getElementById('result').innerHTML =
+        'Done! <a href="' + url + '" target="_blank">Open Agenda ↗</a>';
+    }
+
+    function onFailure(err) {
+      document.getElementById('status').textContent = 'Error: ' + (err.message || String(err));
+    }
+  </script>
+</body>
+</html>
