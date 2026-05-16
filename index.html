@@ -202,6 +202,9 @@
             this.statusIsError = true;
             return;
           }
+          // Read select value directly from DOM — more reliable than x-model
+          // when options are populated asynchronously.
+          var councilTarget = document.getElementById('councilTarget').value;
           this.submitting    = true;
           this.statusMsg     = '';
           this.statusIsError = false;
@@ -213,7 +216,7 @@
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
               body: JSON.stringify({
                 committee:     this.committee,
-                councilTarget: this.councilTarget,
+                councilTarget: councilTarget,
                 authorName:    this.authorName,
                 authorEmail:   this.authorEmail,
                 bodyHTML:      bodyHTML
