@@ -156,6 +156,8 @@
         init() {
           Quill.register({'modules/table-better': QuillTableBetter}, true);
 
+          var Delta = Quill.import('delta');
+
           this.quill = new Quill('#editor', {
             theme: 'snow',
             placeholder: 'Write or paste your report here…',
@@ -168,6 +170,19 @@
                 ['table-better'],
                 ['clean']
               ],
+              clipboard: {
+                matchers: [
+                  // Pages/Word pastes underline as CSS rather than <u> tags.
+                  [Node.ELEMENT_NODE, function(node, delta) {
+                    var style = node.style || {};
+                    var td = style.textDecoration || style.textDecorationLine || '';
+                    if (td.includes('underline')) {
+                      return delta.compose(new Delta().retain(delta.length(), { underline: true }));
+                    }
+                    return delta;
+                  }]
+                ]
+              },
               'table-better': {
                 language: 'en_US',
                 menus: ['column', 'row', 'merge', 'table', 'cell', 'wrap', 'copy', 'delete'],
