@@ -172,11 +172,13 @@
               ],
               clipboard: {
                 matchers: [
-                  // Pages/Word pastes underline as CSS rather than <u> tags.
+                  // Pages/Word paste underline as CSS variants rather than <u> tags.
+                  // Search the raw style string to catch text-decoration, text-decoration-line,
+                  // and -webkit-text-decoration-line in any form.
                   [Node.ELEMENT_NODE, function(node, delta) {
-                    var style = node.style || {};
-                    var td = style.textDecoration || style.textDecorationLine || '';
-                    if (td.includes('underline')) {
+                    var styleStr = (node.getAttribute && node.getAttribute('style')) || '';
+                    var isU = node.tagName === 'U';
+                    if ((isU || styleStr.toLowerCase().includes('underline')) && delta.length()) {
                       return delta.compose(new Delta().retain(delta.length(), { underline: true }));
                     }
                     return delta;
