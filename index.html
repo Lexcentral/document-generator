@@ -170,21 +170,6 @@
                 ['table-better'],
                 ['clean']
               ],
-              clipboard: {
-                matchers: [
-                  // Pages/Word paste underline as CSS variants rather than <u> tags.
-                  // Search the raw style string to catch text-decoration, text-decoration-line,
-                  // and -webkit-text-decoration-line in any form.
-                  [Node.ELEMENT_NODE, function(node, delta) {
-                    var styleStr = (node.getAttribute && node.getAttribute('style')) || '';
-                    var isU = node.tagName === 'U';
-                    if ((isU || styleStr.toLowerCase().includes('underline')) && delta.length()) {
-                      return delta.compose(new Delta().retain(delta.length(), { underline: true }));
-                    }
-                    return delta;
-                  }]
-                ]
-              },
               'table-better': {
                 language: 'en_US',
                 menus: ['column', 'row', 'merge', 'table', 'cell', 'wrap', 'copy', 'delete'],
@@ -194,6 +179,17 @@
                 bindings: QuillTableBetter.keyboardBindings
               }
             }
+          });
+
+          // Add underline matcher post-init so it isn't overridden by quill-table-better's
+          // clipboard handling. Searches the raw style string to catch text-decoration,
+          // text-decoration-line, and -webkit-text-decoration-line in any form.
+          this.quill.clipboard.addMatcher(Node.ELEMENT_NODE, function(node, delta) {
+            var styleStr = (node.getAttribute && node.getAttribute('style')) || '';
+            if ((node.tagName === 'U' || styleStr.toLowerCase().includes('underline')) && delta.length()) {
+              return delta.compose(new Delta().retain(delta.length(), { underline: true }));
+            }
+            return delta;
           });
 
           fetch(GAS_URL, { redirect: 'follow' })
